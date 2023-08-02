@@ -174,7 +174,7 @@ mod tests {
         let data = DatabaseTableUpdate {
             table_id,
             table_name: table_name.to_string(),
-            ops: vec![op.clone()],
+            ops: vec![op],
         };
 
         let q = QueryExpr::new(db_table((&schema).into(), table_name, table_id));
@@ -237,8 +237,8 @@ mod tests {
         q: &QueryExpr,
         data: &DatabaseTableUpdate,
     ) -> ResultTest<()> {
-        let q = to_mem_table(q.clone(), &data);
-        let result = run_query(&db, tx, &q, AuthCtx::for_testing())?;
+        let q = to_mem_table(q.clone(), data);
+        let result = run_query(db, tx, &q, AuthCtx::for_testing())?;
 
         assert_eq!(
             Some(table.as_without_table_name()),
@@ -252,8 +252,7 @@ mod tests {
         result
             .tables
             .iter()
-            .map(|x| x.ops.iter().map(|x| x.row.clone()))
-            .flatten()
+            .flat_map(|x| x.ops.iter().map(|x| x.row.clone()))
             .sorted()
             .collect::<Vec<_>>()
     }
@@ -266,7 +265,7 @@ mod tests {
         total_tables: usize,
         rows: &[ProductValue],
     ) -> ResultTest<()> {
-        let result = s.eval_incr(&db, tx, &update, AuthCtx::for_testing())?;
+        let result = s.eval_incr(db, tx, update, AuthCtx::for_testing())?;
         assert_eq!(
             result.tables.len(),
             total_tables,
@@ -287,7 +286,7 @@ mod tests {
         total_tables: usize,
         rows: &[ProductValue],
     ) -> ResultTest<()> {
-        let result = s.eval(&db, tx, AuthCtx::for_testing())?;
+        let result = s.eval(db, tx, AuthCtx::for_testing())?;
         assert_eq!(
             result.tables.len(),
             total_tables,
@@ -486,15 +485,8 @@ mod tests {
         let s = QuerySet(vec![Query { queries: vec![q_2] }, Query { queries: vec![q_1] }]);
 
         let result_2 = s.eval(&db, &mut tx, AuthCtx::for_testing())?;
-        let to_row = |of: DatabaseUpdate| {
-            of.tables
-                .iter()
-                .flat_map(|x| x.ops.iter().map(|x| x.row.clone()))
-                .sorted()
-                .collect::<Vec<_>>()
-        };
 
-        assert_eq!(to_row(result_1), to_row(result_2));
+        assert_eq!(get_result(result_1), get_result(result_2));
 
         Ok(())
     }
@@ -517,7 +509,7 @@ mod tests {
         run(&db, &mut tx, sql_create, AuthCtx::for_testing())?;
 
         let sql_query = "SELECT * FROM MobileEntityState JOIN EnemyState ON MobileEntityState.entity_id = EnemyState.entity_id WHERE location_x > 96000 AND MobileEntityState.location_x < 192000 AND MobileEntityState.location_z > 96000 AND MobileEntityState.location_z < 192000";
-        let q = compile_query(&db, &mut tx, &AuthCtx::for_testing(), sql_query)?;
+        let q = compile_query(&db, &tx, &AuthCtx::for_testing(), sql_query)?;
 
         for q in q.queries {
             assert_eq!(
@@ -542,7 +534,7 @@ mod tests {
 
         let s = QuerySet(vec![compile_query(
             &db,
-            &mut tx,
+            &tx,
             &AuthCtx::for_testing(),
             SUBSCRIBE_TO_ALL_QUERY,
         )?]);
@@ -552,13 +544,13 @@ mod tests {
         let row1 = TableOp {
             op_type: 0,
             row_pk: row_1.to_data_key().to_bytes(),
-            row: row_1.clone(),
+            row: row_1,
         };
 
         let row2 = TableOp {
             op_type: 1,
             row_pk: row_2.to_data_key().to_bytes(),
-            row: row_2.clone(),
+            row: row_2,
         };
 
         let data1 = DatabaseTableUpdate {
