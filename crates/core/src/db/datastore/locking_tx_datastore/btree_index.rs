@@ -58,13 +58,13 @@ pub(crate) struct BTreeIndex {
     pub(crate) index_id: IndexId,
     pub(crate) table_id: u32,
     pub(crate) col_id: u32,
-    pub(crate) name: String,
+    pub(crate) name: Box<str>,
     pub(crate) is_unique: bool,
     idx: BTreeSet<IndexKey>,
 }
 
 impl BTreeIndex {
-    pub(crate) fn new(index_id: IndexId, table_id: u32, col_id: u32, name: String, is_unique: bool) -> Self {
+    pub(crate) fn new(index_id: IndexId, table_id: u32, col_id: u32, name: Box<str>, is_unique: bool) -> Self {
         Self {
             index_id,
             table_id,

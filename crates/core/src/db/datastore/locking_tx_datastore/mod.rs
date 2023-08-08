@@ -44,9 +44,7 @@ use spacetimedb_lib::{
     data_key::ToDataKey,
     DataKey,
 };
-use spacetimedb_sats::{
-    AlgebraicType, AlgebraicValue, BuiltinType, BuiltinValue, ProductType, ProductTypeElement, ProductValue,
-};
+use spacetimedb_sats::{AlgebraicType, AlgebraicValue, BuiltinType, BuiltinValue, ProductType, ProductValue};
 use thiserror::Error;
 
 #[derive(Error, Debug, PartialEq, Eq)]
@@ -590,7 +588,7 @@ impl Inner {
     }
 
     fn create_table(&mut self, table_schema: TableDef) -> super::Result<TableId> {
-        let table_name = table_schema.table_name.as_str();
+        let table_name = &*table_schema.table_name;
         log::trace!("TABLE CREATING: {table_name}");
 
         if table_name_is_system(table_name) {
@@ -686,13 +684,10 @@ impl Inner {
         // we have created the table in the database, but have not yet
         // represented in memory or inserted any rows into it.
         let table_schema = self.schema_for_table(table_id)?;
-        let elements = table_schema
-            .columns
+        let elements = table_schema.columns
+            .into_vec()
             .into_iter()
-            .map(|col| ProductTypeElement {
-                name: None,
-                algebraic_type: col.col_type,
-            })
+            .map(|col| col.col_type.into())
             .collect();
         Ok(ProductType { elements })
     }
@@ -721,44 +716,44 @@ impl Inner {
 
         let row = rows.first().ok_or_else(|| TableError::IdNotFound(table_id.0))?;
         let el = StTableRow::try_from(row.view())?;
-        let table_name = el.table_name.to_owned();
+        let table_name = el.table_name.to_owned().into();
         let table_id = el.table_id;
 
         // Look up the columns for the table in question.
-        let mut columns = Vec::new();
         const TABLE_ID_COL: ColId = ColId(0);
-        for data_ref in self.iter_by_col_eq(&ST_COLUMNS_ID, &TABLE_ID_COL, &AlgebraicValue::U32(table_id))? {
-            let row = data_ref.view();
-
-            let el = StColumnRow::try_from(row)?;
-            let col_schema = ColumnSchema {
-                table_id: el.table_id,
-                col_id: el.col_id,
-                col_name: el.col_name.into(),
-                col_type: el.col_type,
-                is_autoinc: el.is_autoinc,
-            };
-            columns.push(col_schema);
-        }
-
+        let mut columns = self
+            .iter_by_col_eq(&ST_COLUMNS_ID, &TABLE_ID_COL, &AlgebraicValue::U32(table_id))?
+            .map(|data_ref| {
+                let row = data_ref.view();
+                let el = StColumnRow::try_from(row)?;
+                Ok(ColumnSchema {
+                    table_id: el.table_id,
+                    col_id: el.col_id,
+                    col_name: el.col_name.into(),
+                    col_type: el.col_type,
+                    is_autoinc: el.is_autoinc,
+                })
+            })
+            .collect::<Result<Vec<_>, DBError>>()?;
         columns.sort_by_key(|col| col.col_id);
+        let columns = columns.into();
 
         // Look up the indexes for the table in question.
-        let mut indexes = Vec::new();
         let table_id_col: ColId = ColId(1);
-        for data_ref in self.iter_by_col_eq(&ST_INDEXES_ID, &table_id_col, &AlgebraicValue::U32(table_id))? {
-            let row = data_ref.view();
-
-            let el = StIndexRow::try_from(row)?;
-            let index_schema = IndexSchema {
-                table_id: el.table_id,
-                col_id: el.col_id,
-                index_name: el.index_name.into(),
-                is_unique: el.is_unique,
-                index_id: el.index_id,
-            };
-            indexes.push(index_schema);
-        }
+        let indexes = self
+            .iter_by_col_eq(&ST_INDEXES_ID, &table_id_col, &AlgebraicValue::U32(table_id))?
+            .map(|data_ref| {
+                let row = data_ref.view();
+                let el = StIndexRow::try_from(row)?;
+                Ok(IndexSchema {
+                    table_id: el.table_id,
+                    col_id: el.col_id,
+                    index_name: el.index_name.into(),
+                    is_unique: el.is_unique,
+                    index_id: el.index_id,
+                })
+            })
+            .collect::<Result<Vec<_>, DBError>>()?;
 
         Ok(TableSchema {
             columns,
@@ -918,7 +913,7 @@ impl Inner {
             index_id,
             index.table_id,
             index.col_id,
-            index.name.to_string(),
+            index.name.clone(),
             index.is_unique,
         );
         insert_index.build_from_rows(insert_table.scan_rows())?;
@@ -931,7 +926,7 @@ impl Inner {
         insert_table.schema.indexes.push(IndexSchema {
             table_id: index.table_id,
             col_id: index.col_id,
-            index_name: index.name.to_string(),
+            index_name: index.name.clone(),
             is_unique: index.is_unique,
             index_id: index_id.0,
         });
@@ -1092,7 +1087,7 @@ impl Inner {
         // TODO: Excuting schema_for_table for every row insert is expensive.
         // We should store the schema in the [Table] struct instead.
         let schema = self.schema_for_table(table_id)?;
-        for col in schema.columns {
+        for col in &*schema.columns {
             if col.is_autoinc {
                 if !Self::can_replace_with_sequence(&row.elements[col.col_id as usize]) {
                     continue;
@@ -2023,7 +2018,7 @@ mod tests {
     fn basic_table_schema() -> TableDef {
         TableDef {
             table_name: "Foo".into(),
-            columns: vec![
+            columns: [
                 ColumnDef {
                     col_name: "id".into(),
                     col_type: AlgebraicType::U32,
@@ -2039,7 +2034,8 @@ mod tests {
                     col_type: AlgebraicType::U32,
                     is_autoinc: false,
                 },
-            ],
+            ]
+            .into(),
             indexes: vec![
                 IndexDef {
                     table_id: 0, // Ignored
@@ -2254,14 +2250,14 @@ mod tests {
         assert_eq!(schema, TableSchema {
             table_id: table_id.0,
             table_name: "Foo".into(),
-            columns: vec![
-                ColumnSchema { table_id: 4, col_id: 0, col_name: "id".to_string(), col_type: AlgebraicType::U32, is_autoinc: true },
-                ColumnSchema { table_id: 4, col_id: 1, col_name: "name".to_string(), col_type: AlgebraicType::String, is_autoinc: false },
-                ColumnSchema { table_id: 4, col_id: 2, col_name: "age".to_string(), col_type: AlgebraicType::U32, is_autoinc: false },
-            ],
+            columns: [
+                ColumnSchema { table_id: 4, col_id: 0, col_name: "id".into(), col_type: AlgebraicType::U32, is_autoinc: true },
+                ColumnSchema { table_id: 4, col_id: 1, col_name: "name".into(), col_type: AlgebraicType::String, is_autoinc: false },
+                ColumnSchema { table_id: 4, col_id: 2, col_name: "age".into(), col_type: AlgebraicType::U32, is_autoinc: false },
+            ].into(),
             indexes: vec![
-                IndexSchema { index_id: 4, table_id: 4, col_id: 0, index_name: "id_idx".to_string(), is_unique: true },
-                IndexSchema { index_id: 5, table_id: 4, col_id: 1, index_name: "name_idx".to_string(), is_unique: true },
+                IndexSchema { index_id: 4, table_id: 4, col_id: 0, index_name: "id_idx".into(), is_unique: true },
+                IndexSchema { index_id: 5, table_id: 4, col_id: 1, index_name: "name_idx".into(), is_unique: true },
             ],
             table_type: StTableType::User,
             table_access: StAccess::Public,
@@ -2282,14 +2278,14 @@ mod tests {
         assert_eq!(schema, TableSchema {
             table_id: table_id.0,
             table_name: "Foo".into(),
-            columns: vec![
-                ColumnSchema { table_id: 4, col_id: 0, col_name: "id".to_string(), col_type: AlgebraicType::U32, is_autoinc: true },
-                ColumnSchema { table_id: 4, col_id: 1, col_name: "name".to_string(), col_type: AlgebraicType::String, is_autoinc: false },
-                ColumnSchema { table_id: 4, col_id: 2, col_name: "age".to_string(), col_type: AlgebraicType::U32, is_autoinc: false },
-            ],
+            columns: [
+                ColumnSchema { table_id: 4, col_id: 0, col_name: "id".into(), col_type: AlgebraicType::U32, is_autoinc: true },
+                ColumnSchema { table_id: 4, col_id: 1, col_name: "name".into(), col_type: AlgebraicType::String, is_autoinc: false },
+                ColumnSchema { table_id: 4, col_id: 2, col_name: "age".into(), col_type: AlgebraicType::U32, is_autoinc: false },
+            ].into(),
             indexes: vec![
-                IndexSchema { index_id: 4, table_id: 4, col_id: 0, index_name: "id_idx".to_string(), is_unique: true },
-                IndexSchema { index_id: 5, table_id: 4, col_id: 1, index_name: "name_idx".to_string(), is_unique: true },
+                IndexSchema { index_id: 4, table_id: 4, col_id: 0, index_name: "id_idx".into(), is_unique: true },
+                IndexSchema { index_id: 5, table_id: 4, col_id: 1, index_name: "name_idx".into(), is_unique: true },
             ],
             table_type: StTableType::User,
             table_access: StAccess::Public,
@@ -2626,7 +2622,7 @@ mod tests {
         let mut tx = datastore.begin_mut_tx();
         let index_def = IndexDef {
             col_id: 2,
-            name: "age_idx".to_string(),
+            name: "age_idx".into(),
             is_unique: true,
             table_id: table_id.0,
         };
@@ -2693,7 +2689,7 @@ mod tests {
         let index_def = IndexDef {
             table_id: table_id.0,
             col_id: 2,
-            name: "age_idx".to_string(),
+            name: "age_idx".into(),
             is_unique: true,
         };
         datastore.create_index_mut_tx(&mut tx, index_def)?;
@@ -2760,7 +2756,7 @@ mod tests {
         let mut tx = datastore.begin_mut_tx();
         let index_def = IndexDef {
             col_id: 2,
-            name: "age_idx".to_string(),
+            name: "age_idx".into(),
             is_unique: true,
             table_id: table_id.0,
         };

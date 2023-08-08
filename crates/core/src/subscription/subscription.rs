@@ -80,10 +80,11 @@ impl QuerySet {
                             )
                         });
 
-                        let mut table_row_operations = table.clone();
-                        table_row_operations.ops.clear();
+                        // Optimistically assume we have seen nothing in the row list.
+                        let mut ops = Vec::with_capacity(result.data.len());
                         for mut row in result.data {
-                            //Hack: remove the hidden field OP_TYPE_FIELD_NAME. see `to_mem_table`
+                            // Hack: remove the hidden field OP_TYPE_FIELD_NAME.
+                            // See `to_mem_table`
                             // Needs to be done before calculating the PK.
                             let op_type = if let AlgebraicValue::Builtin(BuiltinValue::U8(op)) =
                                 row.elements.remove(pos_op_type)
@@ -95,17 +96,21 @@ impl QuerySet {
 
                             let row_pk = RelationalDB::pk_for_row(&row);
 
-                            //Skip rows that are already resolved in a previous subscription...
+                            // Skip rows that are already resolved in a previous subscription.
                             if seen.contains(&(table.table_id, row_pk)) {
                                 continue;
                             }
 
                             seen.insert((table.table_id, row_pk));
 
-                            let row_pk = row_pk.to_bytes();
-                            table_row_operations.ops.push(TableOp { op_type, row_pk, row });
+                            let row_pk = row_pk.to_bytes().into();
+                            ops.push(TableOp { op_type, row_pk, row });
                         }
-                        output.tables.push(table_row_operations);
+                        output.tables.push(DatabaseTableUpdate {
+                            table_id: table.table_id,
+                            table_name: table.table_name.clone(),
+                            ops: ops.into(),
+                        });
                     }
                 }
             }
@@ -147,7 +152,7 @@ impl QuerySet {
                                 }
                                 seen.insert((t.table_id, row_pk));
 
-                                let row_pk = row_pk.to_bytes();
+                                let row_pk = row_pk.to_bytes().into();
                                 table_row_operations.push(TableOp {
                                     op_type: 1, // Insert
                                     row_pk,
@@ -158,7 +163,7 @@ impl QuerySet {
                             database_update.tables.push(DatabaseTableUpdate {
                                 table_id: t.table_id,
                                 table_name: t.head.table_name.clone(),
-                                ops: table_row_operations,
+                                ops: table_row_operations.into(),
                             });
                         }
                     }

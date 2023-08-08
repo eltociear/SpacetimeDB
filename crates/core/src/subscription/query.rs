@@ -55,11 +55,11 @@ pub fn to_mem_table(of: QueryExpr, data: &DatabaseTableUpdate) -> QueryExpr {
             FieldName::named(&t.head.table_name, OP_TYPE_FIELD_NAME),
             AlgebraicType::U8,
         ));
-        for row in &data.ops {
+        t.data.extend(data.ops.iter().map(|row| {
             let mut new = row.row.clone();
             new.elements.push(row.op_type.into());
-            t.data.push(new);
-        }
+            new
+        }));
     }
 
     q.source = SourceExpr::MemTable(t);
@@ -144,14 +144,14 @@ mod tests {
 
         let op = TableOp {
             op_type: 1,
-            row_pk: vec![],
+            row_pk: [].into(),
             row,
         };
 
         let data = DatabaseTableUpdate {
             table_id,
-            table_name: "inventory".to_string(),
-            ops: vec![op.clone()],
+            table_name: "inventory".into(),
+            ops: [op.clone()].into(),
         };
         // For filtering out the hidden field `OP_TYPE_FIELD_NAME`
         let fields = &[
@@ -171,8 +171,8 @@ mod tests {
 
         let data = DatabaseTableUpdate {
             table_id,
-            table_name: "inventory".to_string(),
-            ops: vec![op],
+            table_name: "inventory".into(),
+            ops: [op].into(),
         };
 
         let q = QueryExpr::new(db_table((&schema).into(), "inventory", table_id))
@@ -213,14 +213,14 @@ mod tests {
 
         let op = TableOp {
             op_type: 0,
-            row_pk: vec![],
+            row_pk: [].into(),
             row: row.clone(),
         };
 
         let data = DatabaseTableUpdate {
             table_id,
-            table_name: "_inventory".to_string(),
-            ops: vec![op],
+            table_name: "_inventory".into(),
+            ops: [op].into(),
         };
         // For filtering out the hidden field `OP_TYPE_FIELD_NAME`
         let fields = &[
@@ -256,22 +256,24 @@ mod tests {
             },
         ]);
 
+        let row_pk: Box<[u8]> = row.to_data_key().to_bytes().into();
+
         let row1 = TableOp {
             op_type: 0,
-            row_pk: row.to_data_key().to_bytes(),
+            row_pk: row_pk.clone(),
             row: row.clone(),
         };
 
         let row2 = TableOp {
             op_type: 1,
-            row_pk: row.to_data_key().to_bytes(),
+            row_pk,
             row: row.clone(),
         };
 
         let data = DatabaseTableUpdate {
             table_id,
-            table_name: "_inventory".to_string(),
-            ops: vec![row1, row2],
+            table_name: "_inventory".into(),
+            ops: [row1, row2].into(),
         };
 
         let update = DatabaseUpdate {
@@ -390,22 +392,23 @@ mod tests {
             },
         ]);
 
+        let row_pk: Box<[u8]> = row.to_data_key().to_bytes().into();
         let row1 = TableOp {
             op_type: 0,
-            row_pk: row.to_data_key().to_bytes(),
+            row_pk: row_pk.clone(),
             row: row.clone(),
         };
 
         let row2 = TableOp {
             op_type: 1,
-            row_pk: row.to_data_key().to_bytes(),
+            row_pk,
             row: row.clone(),
         };
 
         let data = DatabaseTableUpdate {
             table_id,
-            table_name: "inventory".to_string(),
-            ops: vec![row1, row2],
+            table_name: "inventory".into(),
+            ops: [row1, row2].into(),
         };
 
         let update = DatabaseUpdate { tables: vec![data] };
@@ -491,7 +494,7 @@ mod tests {
         let sql_create = "\
         insert into MobileEntityState (entity_id, location_x, location_z, destination_x, destination_z, is_running, timestamp, dimension) values (1, 96001, 96001, 96001, 1867045146, false, 17167179743690094247, 3926297397);\
         insert into MobileEntityState (entity_id, location_x, location_z, destination_x, destination_z, is_running, timestamp, dimension) values (2, 96001, 191000, 191000, 1560020888, true, 2947537077064292621, 445019304);
-        
+
         insert into EnemyState (entity_id, herd_id, status, type, direction) values (1, 1181485940, 1633678837, 1158301365, 132191327);
         insert into EnemyState (entity_id, herd_id, status, type, direction) values (2, 2017368418, 194072456, 34423057, 1296770410);";
         run(&db, &mut tx, sql_create, AuthCtx::for_testing())?;

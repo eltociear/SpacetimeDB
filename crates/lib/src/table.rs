@@ -37,8 +37,8 @@ impl ProductTypeMeta {
         self.attr.clear();
     }
 
-    pub fn push(&mut self, name: &str, ty: AlgebraicType, attr: ColumnIndexAttribute) {
-        self.columns.push(ProductTypeElement::new(ty, Some(name.to_string())));
+    pub fn push(&mut self, name: Box<str>, ty: AlgebraicType, attr: ColumnIndexAttribute) {
+        self.columns.push(ProductTypeElement::new(ty, Some(name)));
         self.attr.push(attr);
     }
 
@@ -114,7 +114,7 @@ impl<'a> FromIterator<&'a (&'a str, AlgebraicType, ColumnIndexAttribute)> for Pr
     fn from_iter<T: IntoIterator<Item = &'a (&'a str, AlgebraicType, ColumnIndexAttribute)>>(iter: T) -> Self {
         Self::with_attributes(
             iter.into_iter()
-                .map(|(name, ty, attr)| (ProductTypeElement::new(ty.clone(), Some(name.to_string())), *attr)),
+                .map(|(name, ty, attr)| (ProductTypeElement::new(ty.clone(), Some((*name).into())), *attr)),
         )
     }
 }

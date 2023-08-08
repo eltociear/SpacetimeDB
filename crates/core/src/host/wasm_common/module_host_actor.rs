@@ -3,7 +3,7 @@ use std::ops::ControlFlow;
 use std::sync::Arc;
 use std::time::{Duration, Instant};
 
-use crate::db::datastore::traits::{ColumnDef, IndexDef, TableDef, TableSchema};
+use crate::db::datastore::traits::{ColumnDef, IndexDef, TableDef};
 use crate::host::scheduler::Scheduler;
 use anyhow::Context;
 use bytes::Bytes;
@@ -556,7 +556,7 @@ impl<T: WasmInstance> WasmInstanceActor<T> {
 
         let mut tainted = vec![];
         stdb.with_auto_commit::<_, _, anyhow::Error>(|tx| {
-            let mut known_tables: BTreeMap<String, TableSchema> = stdb
+            let mut known_tables: BTreeMap<_, _> = stdb
                 .get_all_tables(tx)?
                 .into_iter()
                 .map(|schema| (schema.table_name.clone(), schema))
@@ -705,7 +705,7 @@ impl<T: WasmInstance> WasmInstanceActor<T> {
         let event = ModuleEvent {
             timestamp,
             function_call: ModuleFunctionCall {
-                reducer: reducer_symbol.to_string(),
+                reducer: reducer_symbol.into(),
                 args: ArgsTuple::default(),
             },
             status,
@@ -854,7 +854,7 @@ impl<T: WasmInstance> WasmInstanceActor<T> {
             table.column_attrs.len() == schema.elements.len(),
             "mismatched number of columns"
         );
-        let columns: Vec<ColumnDef> = std::iter::zip(schema.elements.iter(), &table.column_attrs)
+        let columns: Box<[ColumnDef]> = std::iter::zip(schema.elements.iter(), &*table.column_attrs)
             .map(|(ty, attr)| {
                 Ok(ColumnDef {
                     col_name: ty.name.clone().context("column without name")?,
@@ -900,7 +900,7 @@ impl<T: WasmInstance> WasmInstanceActor<T> {
                 let index = IndexDef {
                     table_id: 0, // Will be ignored
                     col_id: col_id as u32,
-                    name: format!("{}_{}_unique", table.name, col.col_name),
+                    name: format!("{}_{}_unique", table.name, col.col_name).into(),
                     is_unique: true,
                 };
                 indexes.push(index);

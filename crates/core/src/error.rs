@@ -62,9 +62,9 @@ pub enum IndexError {
     ColumnNotFound(IndexDef),
     #[error("Unique constraint violation '{}' in table '{}': column: '{}' value: {}", constraint_name, table_name, col_name, value.to_satn())]
     UniqueConstraintViolation {
-        constraint_name: String,
-        table_name: String,
-        col_name: String,
+        constraint_name: Box<str>,
+        table_name: Box<str>,
+        col_name: Box<str>,
         value: AlgebraicValue,
     },
 }
