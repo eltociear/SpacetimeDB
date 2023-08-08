@@ -462,7 +462,7 @@ impl<Name: AsRef<str>> From<&StTableRow<Name>> for ProductValue {
     fn from(x: &StTableRow<Name>) -> Self {
         product![
             AlgebraicValue::U32(x.table_id),
-            AlgebraicValue::String(x.table_name.as_ref().to_owned()),
+            AlgebraicValue::String(x.table_name.as_ref().into()),
             AlgebraicValue::String(x.table_type.as_str().into()),
             AlgebraicValue::String(x.table_access.as_str().into())
         ]
@@ -521,7 +521,7 @@ impl<Name: AsRef<str>> From<&StColumnRow<Name>> for ProductValue {
             AlgebraicValue::U32(x.table_id),
             AlgebraicValue::U32(x.col_id),
             AlgebraicValue::Bytes(bytes),
-            AlgebraicValue::String(x.col_name.as_ref().to_owned()),
+            AlgebraicValue::String(x.col_name.as_ref().into()),
             AlgebraicValue::Bool(x.is_autoinc),
         ]
     }
@@ -572,7 +572,7 @@ impl<Name: AsRef<str>> From<&StIndexRow<Name>> for ProductValue {
             AlgebraicValue::U32(x.index_id),
             AlgebraicValue::U32(x.table_id),
             AlgebraicValue::U32(x.col_id),
-            AlgebraicValue::String(x.index_name.as_ref().to_string()),
+            AlgebraicValue::String(x.index_name.as_ref().into()),
             AlgebraicValue::Bool(x.is_unique)
         ]
     }
@@ -637,7 +637,7 @@ impl<Name: AsRef<str>> From<&StSequenceRow<Name>> for ProductValue {
     fn from(x: &StSequenceRow<Name>) -> Self {
         product![
             AlgebraicValue::U32(x.sequence_id),
-            AlgebraicValue::String(x.sequence_name.as_ref().to_string()),
+            AlgebraicValue::String(x.sequence_name.as_ref().into()),
             AlgebraicValue::U32(x.table_id),
             AlgebraicValue::U32(x.col_id),
             AlgebraicValue::I128(x.increment),

@@ -579,7 +579,7 @@ impl Inner {
         self.iter_by_col_eq(
             &ST_SEQUENCES_ID,
             &seq_name_col,
-            &AlgebraicValue::String(seq_name.to_owned()),
+            &AlgebraicValue::String(seq_name.into()),
         )
         .map(|mut iter| {
             iter.next()
@@ -830,7 +830,7 @@ impl Inner {
         self.iter_by_col_eq(
             &ST_TABLES_ID,
             &table_name_col,
-            &AlgebraicValue::String(table_name.to_owned()),
+            &AlgebraicValue::String(table_name.into()),
         )
         .map(|mut iter| {
             iter.next()
@@ -995,7 +995,7 @@ impl Inner {
         self.iter_by_col_eq(
             &ST_INDEXES_ID,
             &index_name_col,
-            &AlgebraicValue::String(index_name.to_owned()),
+            &AlgebraicValue::String(index_name.into()),
         )
         .map(|mut iter| {
             iter.next()
@@ -2314,7 +2314,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2326,7 +2326,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2341,7 +2341,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
         ]);
         assert!(datastore.insert_mut_tx(&mut tx, table_id, row).is_err());
         let rows = datastore
@@ -2361,7 +2361,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2375,7 +2375,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2390,7 +2390,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(15), // A number which will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.commit_mut_tx(tx)?;
@@ -2415,7 +2415,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2423,7 +2423,7 @@ mod tests {
         let mut tx = datastore.begin_mut_tx();
         let created_row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(1),
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         let num_deleted = datastore.delete_by_rel_mut_tx(&mut tx, table_id, vec![created_row])?;
@@ -2435,7 +2435,7 @@ mod tests {
         assert_eq!(rows.len(), 0);
         let created_row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(1),
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(19),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, created_row)?;
@@ -2447,7 +2447,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(19),
             ])
         ]);
@@ -2462,14 +2462,14 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
         for _ in 0..2 {
             let created_row = ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ]);
             let num_deleted = datastore.delete_by_rel_mut_tx(&mut tx, table_id, vec![created_row.clone()])?;
@@ -2488,7 +2488,7 @@ mod tests {
             assert_eq!(rows, vec![
                 ProductValue::from_iter(vec![
                     AlgebraicValue::U32(1),
-                    AlgebraicValue::String("Foo".to_string()),
+                    AlgebraicValue::String("Foo".into()),
                     AlgebraicValue::U32(18),
                 ])
             ]);
@@ -2504,7 +2504,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row.clone())?;
@@ -2526,7 +2526,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2541,7 +2541,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row.clone())?;
@@ -2565,7 +2565,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2582,7 +2582,7 @@ mod tests {
         let mut tx = datastore.begin_mut_tx();
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row.clone())?;
@@ -2597,7 +2597,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(2),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2614,7 +2614,7 @@ mod tests {
         let mut tx = datastore.begin_mut_tx();
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2644,7 +2644,7 @@ mod tests {
         ]);
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Bar".to_string()),
+            AlgebraicValue::String("Bar".into()),
             AlgebraicValue::U32(18),
         ]);
         let result = datastore.insert_mut_tx(&mut tx, table_id, row);
@@ -2665,7 +2665,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2680,7 +2680,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2712,7 +2712,7 @@ mod tests {
         ]);
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Bar".to_string()),
+            AlgebraicValue::String("Bar".into()),
             AlgebraicValue::U32(18),
         ]);
         let result = datastore.insert_mut_tx(&mut tx, table_id, row);
@@ -2733,7 +2733,7 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
@@ -2748,7 +2748,7 @@ mod tests {
         let table_id = datastore.create_table_mut_tx(&mut tx, schema)?;
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Foo".to_string()),
+            AlgebraicValue::String("Foo".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2779,7 +2779,7 @@ mod tests {
         ]);
         let row = ProductValue::from_iter(vec![
             AlgebraicValue::U32(0), // 0 will be ignored.
-            AlgebraicValue::String("Bar".to_string()),
+            AlgebraicValue::String("Bar".into()),
             AlgebraicValue::U32(18),
         ]);
         datastore.insert_mut_tx(&mut tx, table_id, row)?;
@@ -2791,12 +2791,12 @@ mod tests {
         assert_eq!(rows, vec![
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(1),
-                AlgebraicValue::String("Foo".to_string()),
+                AlgebraicValue::String("Foo".into()),
                 AlgebraicValue::U32(18),
             ]),
             ProductValue::from_iter(vec![
                 AlgebraicValue::U32(2),
-                AlgebraicValue::String("Bar".to_string()),
+                AlgebraicValue::String("Bar".into()),
                 AlgebraicValue::U32(18),
             ])
         ]);
