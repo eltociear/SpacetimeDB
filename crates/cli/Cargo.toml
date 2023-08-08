@@ -49,6 +49,5 @@ itertools = "0.10"
 insta = { version = "1.21.0", features = ["toml"] }
 
 [features]
-tracelogging = []
 standalone = ["spacetimedb-standalone"]
 default = ["standalone"]
