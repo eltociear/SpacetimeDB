@@ -94,6 +94,7 @@ bytestring = { version = "1.2.0", features = ["serde"] }
 indexmap = "1.9.2"
 rustc-hash = "1.1.0"
 url = "2.3.1"
+dirs = "5.0.1"
 
 # Rocksdb ostorage backend, linked only if "rocksdb" feature enabled.
 [dependencies.rocksdb]
