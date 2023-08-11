@@ -81,7 +81,7 @@ pub(crate) fn run_query(
 }
 
 // TODO: It's semantically wrong to `SUBSCRIBE_TO_ALL_QUERY`
-// as it only can return back the changes valid for the tables in scope *right now*
+// as it can only return back the changes valid for the tables in scope *right now*
 // instead of **continuously updating** the db changes
 // with system table modifications (add/remove tables, indexes, ...).
 /// Compile from `SQL` into a [`Query`].
@@ -95,7 +95,7 @@ pub(crate) fn run_query(
 /// }
 /// ```
 ///
-/// WARNING: WARNING: [`SUBSCRIBE_TO_ALL_QUERY`] is only valid for repeated calls as long there is not change on database schema, and the clients must `unsubscribe` before modify it.
+/// WARNING: WARNING: [`SUBSCRIBE_TO_ALL_QUERY`] is only valid for repeated calls as long there is not change on database schema, and the clients must `unsubscribe` before modifying it.
 pub fn compile_query(
     relational_db: &RelationalDB,
     tx: &MutTxId,
@@ -111,8 +111,9 @@ pub fn compile_query(
         return QuerySet::get_all(relational_db, tx, auth);
     }
 
-    let mut queries = Vec::new();
-    for q in compile_sql(relational_db, tx, input)? {
+    let compiled = compile_sql(relational_db, tx, input)?;
+    let mut queries = Vec::with_capacity(compiled.len());
+    for q in compiled {
         match q {
             CrudExpr::Query(x) => queries.push(x),
             CrudExpr::Insert { .. } => {
